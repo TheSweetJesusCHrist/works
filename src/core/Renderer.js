@@ -7,6 +7,7 @@ import { buildSegments, drawSegmentsBase, drawSegmentsGlow } from '../entities/S
 import { H, THANATOS_BLUE, THANATOS_RED, THANATOS_TRANS, W, animTime, clamp01, ctx, currentChar, currentCharKey, currentTheme, darkLevel, easeOutCubic, ensureFxCanvas, getWhiteTint, imgs, lerp, lightningOn, mouse, particles, points, segments, thanatosPhase, thanatosTimer, set_particles, dogClip } from './globals.js';
 import { screenShake } from '../utils/ScreenShake.js';
 import { effects } from '../utils/effects.js';
+import { dogDialogue } from './DogDialogue.js';
 
 export function updateHUD() {
   // 游玩界面不显示任何文字提示，仅保留空 hud 容器
@@ -112,24 +113,28 @@ export const DoGAnim = {
   laserWallRecovering: false,
   laserWallOpacity: 0,
 
-  // 激光墙发射（按键触发可见特效）—— ★ 2026-08-18 对齐原版 DoGLaserWalls.cs 状态机
+  // 激光墙发射（按键触发可见特效）—— ★ 2026-08-19 对齐原版 DoGLaserWalls.cs 多轮状态机
   laserActive: false,
-  laserTimer: 0,             // 总时长（帧，300 = 5s）
+  laserTimer: 0,             // 总时长（帧，480 = 8s）
   laserAngle: 0,             // （保留兼容，不再用于辐条旋转）
-  // 原版状态机字段（DoGLaserWalls.cs / DoGLaserWallsBigBeam.cs）：
-  laserTime: 0,              // time：0→300 帧
-  laserFX: 0,                // 激光亮度因子（0→1 淡入 → 攻击 3 → 衰减）
-  laserDoneAttack: false,    // 是否已攻击（time≥30）
-  laserStoredTime: 0,        // 攻击时刻
-  laserColor: [0, 221, 250], // drawColor（Cyan (0,221,250) → Magenta (255,0,255)）
+  // 原版状态机字段：
+  laserTime: 0,              // time：0→480 帧
+  laserFX: 0,                // 激光亮度因子
   laserSine: 0,              // sin(time×4/π) 宽度脉动
-  laserType: 0,              // 网格风格（0=横竖正交，对齐原版 ai[2]=0）
-  laserDist: 240,            // 激光间距（原版默认 250）
-  laserBigBeamActive: false, // 大光束（DoGLaserWallsBigBeam.cs）攻击瞬间触发
-  laserBigBeamTime: 0,       // 大光束计时（attack 后 +10 帧结束）
+  // ★ 2026-08-19 多轮：每轮 90 帧 = 预警 30 + 攻击 30 + 冷却 30
+  laserPhase: 0,             // 0=预警(青) 1=攻击(紫黑) 2=冷却(空)
+  laserPhaseT: 0,            // 当前阶段内帧数（0→30）
+  laserRound: 0,             // 轮次计数
+  laserPosX: 0, laserPosY: 0,// 本轮网格中心（固定不随头部，每轮随机）
+  laserType: 0,              // 本轮样式：0=横竖正交 1=双斜45°
+  // 本轮锁定参数（预警与攻击共用，保证线重合）
+  laserLocked: false,        // 本轮参数是否已锁定
+  laserColor: [0, 221, 250], // drawColor（预警=Cyan；攻击→Magenta）
+  laserBigBeamActive: false, // BigBeam（DoGLaserWallsBigBeam.cs）攻击阶段触发
+  laserBigBeamTime: 0,
   laserBigBeamFX: 0,
-  laserBigBeamRot: 0,        // 大光束方向随机角
-  laserBigBeamColor: [255, 0, 255],  // BigBeam 颜色（Magenta→Cyan 与网格相反）
+  laserBigBeamRot: 0,        // ±0.4 随机角
+  laserBigBeamColor: [255, 0, 255],  // BigBeam Magenta→Cyan（与网格反向）
 
   // ★ 6 键 armorOff 渐变切换（隐铠甲只留亮纹，不瞬换贴图）
   armorFadeActive: false,   // 渐变进行中（期间忽略重复按键）
@@ -212,8 +217,10 @@ export const DoGAnim = {
     this.deathOpacity = 1;
     this.laserWallRecovering = false; this.laserWallOpacity = 0;
     this.laserActive = false; this.laserTimer = 0; this.laserAngle = 0;
-    this.laserTime = 0; this.laserFX = 0; this.laserDoneAttack = false; this.laserStoredTime = 0;
-    this.laserColor = [0, 221, 250]; this.laserSine = 0;
+    this.laserTime = 0; this.laserFX = 0; this.laserSine = 0;
+    this.laserPhase = 0; this.laserPhaseT = 0; this.laserRound = 0;
+    this.laserPosX = 0; this.laserPosY = 0; this.laserType = 0; this.laserLocked = false;
+    this.laserColor = [0, 221, 250];
     this.laserBigBeamActive = false; this.laserBigBeamTime = 0; this.laserBigBeamFX = 0;
     this.laserBigBeamRot = 0; this.laserBigBeamColor = [255, 0, 255];
     this.armorFadeActive = false; this.armorFadeStage = 0;
@@ -538,6 +545,7 @@ export function updateDoGAnimations(dt) {
   if (currentCharKey !== 'devourer_of_gods') return;
   const A = DoGAnim;
   const dtf = dt * 60;  // frame-normalized
+  dogDialogue.update(dt);   // ★ 神吞语言系统：每帧推进对话时间/淡出
 
   updateDogJaw(dt);   // 传真实秒级 dt（函数内部按秒累加 jawCharge/cooldown，并自算 fstep=dt*60）
   updateDogTeleport(dtf);
@@ -889,42 +897,73 @@ function destroySegmentFx(idx, goreCount) {
   }
 }
 
-// ⑤ 激光墙：按键触发可见特效（旋转激光墙 + 中心粗激光，约 5 秒）
+// ⑤ 激光墙：多轮状态机（★ 2026-08-19 严格对齐原版 DoGLaserWalls.cs + DoGLaserWallsBigBeam.cs）
+//   每轮 90 帧（1.5s）= 预警 30（青色网格）→ 攻击 30（紫黑黑心激光 + BigBeam）→ 冷却 30（空）
+//   每轮随机：网格中心位置（屏幕中心 ±150）+ 样式（0=横竖正交 / 1=双斜45°）
+//   预警与攻击共用本轮 laserPos/laserType → 线完全重合
 
 export function updateDogLaserWall(dt) {
   const A = DoGAnim;
-  if (!A.laserActive) { A.laserFX = 0; A.laserTime = 0; if (_laserGL) _laserGL.clear(); return; }
-  A.laserTime += dt;                          // 帧（原版 time += attackSpeed）
-  A.laserSine = Math.sin(A.laserTime * 4 / Math.PI);   // 原版 sine = sin(time*4/π) 宽度脉动
-  if (!A.laserDoneAttack) {
-    // 淡入：0→30 帧 laserFX 0→1（原版 time==0 设 1，opacity 0.3×fx² 预警）
-    A.laserFX = Math.min(1, A.laserTime / 30);
-    if (A.laserTime >= 30) {
-      // ★ 攻击（原版 attackTime=30）：laserFX=3、屏震 7、BigBeam 触发（storedTime+10 帧结束）
-      A.laserDoneAttack = true;
-      A.laserStoredTime = A.laserTime;
+  if (!A.laserActive) { A.laserFX = 0; A.laserTime = 0; A.laserPhaseT = 0; if (_laserGL) _laserGL.clear(); return; }
+  A.laserTime += dt;
+  A.laserSine = Math.sin(A.laserTime * 4 / Math.PI);   // 原版 sine 宽度脉动
+  A.laserPhaseT += dt;
+
+  // ★ 本轮开始：锁定位置 + 样式（预警与攻击共用 → 线重合）
+  if (!A.laserLocked) {
+    A.laserLocked = true;
+    A.laserPosX = W / 2 + (Math.random() - 0.5) * 300;   // 屏幕中心 ±150
+    A.laserPosY = H / 2 + (Math.random() - 0.5) * 300;
+    A.laserType = Math.random() < 0.5 ? 0 : 1;           // 0=横竖 1=双斜45°
+    A.laserColor = [0, 221, 250];                        // 预警 = Cyan
+    A.laserFX = 1;                                       // ★ 预警起始 laserFX=1（原版 time=0 设 1）
+    A.laserBigBeamActive = false;
+  }
+
+  if (A.laserPhase === 0) {
+    // Phase A 预警（0-30 帧）：青色网格从 laserFX=1 缓降（原版 Lerp(laserFX,0, time>15?0.12:0.01)），
+    //   末段 opacity=0.3×fx² 趋近 0 → 预警基本消失后才触发攻击（不再"预警没消失就射出"）。
+    A.laserFX = lerp(A.laserFX, 0, A.laserPhaseT > 15 ? 0.12 : 0.01);
+    if (A.laserPhaseT >= 30) {
+      A.laserPhase = 1; A.laserPhaseT = 0;
+      dogDialogue.sayRandom();   // ★ 神吞语言系统：攻击相位开始（≈每 90 帧一次）随机抽 1 句头部气泡
+      // ★ 攻击开始（原版 attackTime=30）：laserFX=3、屏震 7、BigBeam 触发
       A.laserFX = 3;
       screenShake.set(7);
       A.laserBigBeamActive = true;
       A.laserBigBeamTime = 0;
       A.laserBigBeamFX = 2.5;
+      A.laserBigBeamRot = (Math.random() - 0.5) * 0.8;   // 原版 ±0.4
+      A.laserBigBeamColor = [255, 0, 255];               // BigBeam 起始 Magenta
     }
-  } else {
-    // 攻击后 10 帧内 drawColor = Lerp(Cyan, Magenta, pow(GetLerpValue(endTime, storedTime, time),2))
-    const g = clamp01((A.laserTime - A.laserStoredTime) / 10);
+  } else if (A.laserPhase === 1) {
+    // Phase B 攻击（30-60 帧）：紫黑激光闪现（原版 laserFX 从 3 开始 Lerp→0，不闪烁）
+    const g = clamp01(A.laserPhaseT / 10);
     const g2 = g * g;
     A.laserColor = [lerp(0, 255, g2), lerp(221, 0, g2), lerp(250, 255, g2)];
-    // 最后 30 帧衰减（demo 保持 8s：450 帧后 laserFX 3→0 淡出；总帧数 480 = 8s × 60fps）
-    if (A.laserTime > 450) A.laserFX = Math.max(0, 3 - ((A.laserTime - 450) / 30) * 3);
-  }
-  // BigBeam（DoGLaserWallsBigBeam.cs）：attack 后 10 帧，FX 2.5→0，颜色 Magenta→Cyan（与网格反向）
-  if (A.laserBigBeamActive) {
-    A.laserBigBeamTime += dt;
-    A.laserBigBeamFX = Math.max(0, 2.5 - (A.laserBigBeamTime / 10) * 2.5);
-    const gb = clamp01(A.laserBigBeamTime / 10);
-    const gb2 = gb * gb;
-    A.laserBigBeamColor = [lerp(255, 0, gb2), lerp(0, 221, gb2), lerp(255, 250, gb2)];
-    if (A.laserBigBeamTime >= 10) A.laserBigBeamActive = false;
+    // ★ 原版 AI: laserFX = Lerp(laserFX, 0, time>15?0.12:0.01) → 从 3 线性衰减到 ~0.3
+    A.laserFX = Math.max(0, 3 * (1 - A.laserPhaseT / 30));
+    // ★ BigBeam：整段攻击（30 帧）持续可见（原版 laserFX = Lerp(laserFX,0, time>15?0.07:0.01) 缓慢衰减不归零），Magenta→Cyan 反向
+    if (A.laserBigBeamActive) {
+      A.laserBigBeamTime += dt;
+      A.laserBigBeamFX = Math.max(0.4, lerp(A.laserBigBeamFX, 0, A.laserPhaseT > 15 ? 0.07 : 0.01));
+      const gb = clamp01(A.laserPhaseT / 15);
+      const gb2 = gb * gb;
+      A.laserBigBeamColor = [lerp(255, 0, gb2), lerp(0, 221, gb2), lerp(255, 250, gb2)];
+    }
+    if (A.laserPhaseT >= 30) {
+      A.laserPhase = 2; A.laserPhaseT = 0;
+      A.laserFX = 0;
+    }
+  } else {
+    // Phase C 冷却（60-90 帧）：消失
+    A.laserFX = 0;
+    A.laserBigBeamActive = false;   // ★ BigBeam 仅在攻击阶段存在，冷却即熄
+    if (A.laserPhaseT >= 30) {
+      A.laserPhase = 0; A.laserPhaseT = 0;
+      A.laserRound++;
+      A.laserLocked = false;   // 下一轮重新随机位置/样式
+    }
   }
   A.laserTimer -= dt;
   if (A.laserTimer <= 0) { A.laserActive = false; A.laserFX = 0; if (_laserGL) _laserGL.clear(); }
@@ -972,19 +1011,8 @@ export function updateDogArmorFade(dt) {
       for (let i = 0; i < segments.length && i < oldAngles.length; i++) {
         segments[i].angle = oldAngles[i];
       }
-      const cx = points[0].x, cy = points[0].y;
-      for (let i = 0; i < 12; i++) {
-        const ang = Math.random() * Math.PI * 2;
-        const spd = 1 + Math.random() * 3;
-        spawnDogParticle(DOG_PARTICLE_TYPES.SPARKLE, cx + (Math.random() - 0.5) * 40, cy + (Math.random() - 0.5) * 40, {
-          life: 30 + Math.random() * 25,
-          vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-          scale: 0.25 + Math.random() * 0.4,
-          spin: 0.08 + Math.random() * 0.1,
-          tex: Math.random() < 0.5 ? imgs.sparkle : imgs.sparkle2,
-        });
-      }
-      screenShake.set(4);
+      // ★ 2026-08-19 用户要求：6 键切换 armorOff 形态（双向）不加屏震、不在虫头（鼠标）生成粒子。
+      //   屏震与 sparkle 粒子已移除，仅做原位换皮（alpha 由淡出/淡入阶段控制）。
     }
     if (A.armorFadeTimer >= ARMOR_FADE_SWAP) {
       A.armorFadeStage = 2;
@@ -1397,6 +1425,7 @@ export function updateDogPhaseTransition(dt) {
       A.ptActive = false;
       A.ptStage = 5;
       A.ptOpacity = 1;   // 确保实体层恢复可见（下帧 A.opacity = 1）
+      dogDialogue.say('finalPhase'); // ★ 变身完毕（过场完全结束）：神吞狠话（Not over yet, kid!）
       break;
     }
   }
@@ -1862,47 +1891,57 @@ export function drawLaserWall() {
 // ★ WebGL2 路径：原版 DoGLaserWalls.cs 网格 + DoGLaserWallsBigBeam.cs 大光束
 function drawLaserWallGL() {
   const A = DoGAnim;
-  // ★ 2026-08-18 必须在 addLaser 前设置 GL canvas 尺寸：否则 _pushLayer 里 this.W=0 → 顶点 Infinity → 全灭
+  // ★ 2026-08-19 网格中心 = 本轮锁定位置（固定不随头部）
   _laserGL.setSize(W, H);
-  const cx = points[0].x, cy = points[0].y;            // 网格中心 = 头部位置（原版 Projectile.Center）
+  const cx = A.laserPosX || W / 2, cy = A.laserPosY || H / 2;   // ★ 本轮锁定中心（update 中锁定，必存在）
   const fx = A.laserFX;
-  // 原版 opacity = (doneAttack ? 0.65 : 0.3) × min(laserFX,1)²
-  const opacity = (A.laserDoneAttack ? 0.65 : 0.3) * Math.pow(Math.min(fx, 1), 2);
+  const laserType = A.laserType || 0;
+  // 原版 opacity：预警 0.3 / 攻击 0.65，× min(fx,1)²
+  const opacity = (A.laserPhase === 1 ? 0.65 : 0.3) * Math.pow(Math.min(fx, 1), 2);
   const cr = A.laserColor[0] / 255, cg = A.laserColor[1] / 255, cb = A.laserColor[2] / 255;
-  const dist = A.laserDist || 240;
-  const count = Math.max(1, Math.floor(6000 / dist));   // 原版 laserCount = 6000/laserDist（25）
-  // ★ 2026-08-18 quad 长度修复：原版 length=3000 拉伸 6030px（远超 720 屏），屏幕只看到 quad 底部 12% UV（贴图底边
-  //   alpha 接近 0 → 完全透明）。改为屏幕最大边×1.5（约 1920），UV 0~1 覆盖贴图核心发光区 → 可见。
-  const length = Math.max(W, H) * 1.5;
-  // ★ 网格（laserType=0 正交：横线 + 竖线，间距 dist，中心向两侧铺开）
-  for (let i = 0; i < count; i++) {
-    const off = (i - (count - 1) / 2) * dist;           // 对称分布在中心两侧
-    // 竖线（x=cx+off 处垂直贯穿屏幕 → quad 沿 Y 拉伸 → rot=0）
-    _laserGL.addLaser({ x: cx + off, y: cy, rot: 0, length, fx, opacity, r: cr, g: cg, b: cb, sine: A.laserSine });
-    // 横线（y=cy+off 处水平贯穿屏幕 → quad 沿 X 拉伸 → rot=π/2）
-    _laserGL.addLaser({ x: cx, y: cy + off, rot: Math.PI / 2, length, fx, opacity, r: cr, g: cg, b: cb, sine: A.laserSine });
+  // ★ 原版固定网格（DoGLaserWalls.cs:23-24,173-195）：laserCount=24, laserDist=250, laserLength=3000, 线长=6000
+  const laserDist = 250;
+  const laserCount = 24;
+  const laserLength = laserDist * laserCount / 2;          // 3000（半长）
+  const lineLen = laserLength * 2;                          // 6000（完整激光长度，贯穿远超屏幕 → 无"空气墙"）
+  const tilt = (laserType === 1 || laserType === 3 || laserType === 5) ? Math.PI / 4 : 0;
+  const Xx = Math.cos(tilt), Xy = Math.sin(tilt);           // 旋转基 X
+  const Yx = -Math.sin(tilt), Yy = Math.cos(tilt);          // 旋转基 Y（⊥X）
+  const layers = A.laserPhase === 1 ? 5 : 1;                // 预警 1 层辉光 / 攻击 5 层（辉光+黑核）
+  const mx = mouse.x, my = mouse.y;
+  // 两组：l=0（长轴向 X、沿 Y 堆叠 = 水平线）/ l=1（长轴向 Y、沿 X 堆叠 = 竖直线）
+  for (let l = 0; l < 2; l++) {
+    const horizontal = (l !== 0);
+    const dirX = horizontal ? Yx : Xx, dirY = horizontal ? Yy : Xy;   // 激光长轴向单位向量
+    const stepX = horizontal ? Xx : Yx, stepY = horizontal ? Xy : Yy; // 堆叠轴单位向量（⊥dir）
+    const crossLasers = ((laserType === 2 && !horizontal) || (laserType === 3 && !horizontal) || (laserType === 4 && horizontal) || (laserType === 5 && horizontal));
+    for (let i = 0; i < laserCount; i += (crossLasers ? 2 : 1)) {
+      const off = (i - (laserCount - 1) / 2) * laserDist;   // 居中对称步进
+      const px = cx + stepX * off, py = cy + stepY * off;   // 线中心点
+      let rot;
+      if (crossLasers) {
+        // 长轴向 = 该线中心 → 鼠标（原版 rot = DirectionTo(target)+Pi/2）
+        const ddx = mx - px, ddy = my - py, dl = Math.hypot(ddx, ddy) || 1;
+        rot = Math.atan2(-(ddx / dl), ddy / dl);
+      } else {
+        rot = Math.atan2(-dirX, dirY);                       // 长轴向 = dir
+      }
+      _laserGL.addLaser({ x: px, y: py, rot, length: lineLen, fx, opacity, r: cr, g: cg, b: cb, layers, thicknessMul: 1, sine: A.laserSine });
+    }
   }
-  // ★ BigBeam（DoGLaserWallsBigBeam.cs）：攻击瞬间从屏幕外射向头部
+  // ★ BigBeam（DoGLaserWallsBigBeam.cs）：攻击阶段从屏外穿过鼠标射向对侧（穿屏激光）
   if (A.laserBigBeamActive) {
     const bbFx = A.laserBigBeamFX;
     const bbOpacity = 0.65 * Math.pow(Math.min(bbFx, 1), 2);
     const br = A.laserBigBeamColor[0] / 255, bg = A.laserBigBeamColor[1] / 255, bb = A.laserBigBeamColor[2] / 255;
-    // 原版 laserType 0/4/5 → UnitX（水平方向）射向 targetPos；beamStart = targetPos + dir×3000
-    // laserRot = ±0.4 随机角
-    const rot = A.laserBigBeamRot || 0;
-    const dirX = Math.cos(rot), dirY = Math.sin(rot);
-    const beamStartX = cx + dirX * 3000, beamStartY = cy + dirY * 3000;
-    // directionToTarget = beamStart.DirectionTo(targetPos)（指向头部）
-    const tdx = cx - beamStartX, tdy = cy - beamStartY;
-    const tl = Math.hypot(tdx, tdy) || 1;
-    const dx = tdx / tl, dy = tdy / tl;
-    // quad 主轴方向 = (-sin rot, cos rot)；要沿 (dx,dy) → sin rot = -dx, cos rot = dy → rot = atan2(-dx, dy)
-    const beamRot = Math.atan2(-dx, dy);
-    // ★ BigBeam 长度也按屏幕修正（覆盖整个屏幕 + 一点延伸）
+    const bd = A.laserBigBeamRot || 0;                       // 随机基础方向角
+    const bdx = Math.cos(bd), bdy = Math.sin(bd);
+    const travelX = -bdx, travelY = -bdy;                    // 行进方向（beamStart=mouse+bd*3000 → 指向 mouse 并越过）
+    const beamRot = Math.atan2(-travelX, travelY);           // 长轴向 = travel（穿过鼠标）
     _laserGL.addLaser({
-      x: beamStartX, y: beamStartY, rot: beamRot,
-      length: Math.max(W, H) * 1.5, fx: bbFx, opacity: bbOpacity,
-      r: br, g: bg, b: bb, sine: A.laserSine,
+      x: mouse.x, y: mouse.y, rot: beamRot,                  // 中心 = 鼠标（对称贯穿，覆盖 mouse 两侧）
+      length: 6000, fx: bbFx, opacity: bbOpacity,
+      r: br, g: bg, b: bb, layers: 8, thicknessMul: 5, coreFalloffDiv: 2, sine: A.laserSine,
     });
   }
   _laserGL.render({ W, H });
@@ -1916,16 +1955,17 @@ function drawLaserWallGL() {
 // 回退：简易 2D 激光（GL 不可用时保底，避免"按了没反应"）
 function drawLaserWall2D() {
   const A = DoGAnim;
-  const cx = points[0].x, cy = points[0].y;
+  const cx = A.laserPosX || points[0].x, cy = A.laserPosY || points[0].y;
   const fx = A.laserFX;
-  const opacity = (A.laserDoneAttack ? 0.65 : 0.3) * Math.pow(Math.min(fx, 1), 2);
+  const opacity = (A.laserPhase === 1 ? 0.65 : 0.3) * Math.pow(Math.min(fx, 1), 2);
   const col = `rgba(${A.laserColor[0]},${A.laserColor[1]},${A.laserColor[2]},${opacity})`;
-  const dist = A.laserDist || 240;
+  const dist = 240;
   const count = Math.max(1, Math.floor(6000 / dist));
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineWidth = 3 * Math.min(fx, 1);
   ctx.strokeStyle = col;
+  // 简易正交网格（回退路径不追求 45° 斜向，保底可见即可）
   for (let i = 0; i < count; i++) {
     const off = (i - (count - 1) / 2) * dist;
     ctx.beginPath(); ctx.moveTo(cx + off, -H); ctx.lineTo(cx + off, H * 2); ctx.stroke();
@@ -2199,6 +2239,9 @@ export function draw() {
 
   // 扩展接口：在最上层绘制自定义拖尾/粒子效果（默认空，不影响现有画面）
   effects.draw(ctx);
+
+  // ★ 神吞语言系统（EdgyBossText）：覆盖层绘制（兄弟 2D canvas，独立于主 ctx 变换）
+  dogDialogue.draw();
 }
 
 // 普通（非自发光）角色的体节绘制：在暗化层之前画，受暗化影响

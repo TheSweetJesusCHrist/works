@@ -394,7 +394,7 @@
       "background": 4,
       "clouds": 0,
       "lightning": 0,
-      "timeOfDay": "night",
+      "timeOfDay": "day",
       "phase": 1,
       "armorOff": false,
       "selfLuminous": true

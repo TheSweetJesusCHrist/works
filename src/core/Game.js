@@ -7,6 +7,8 @@ import { CHARACTERS, IMAGES, onCharactersReload } from '../config/characters.js'
 import { screenShake } from '../utils/ScreenShake.js';
 import { effects } from '../utils/effects.js';
 import { H, W, animTime, canvas, cloudsOn, ctx, currentChar, currentCharKey, currentTheme, darkLevel, imgs, isDual, lastTs, lightningOn, mouse, points, rafId, segments, thanatosPhase, thanatosTimer, timeOfDayOverride, worms, set_canvas, set_ctx, set_W, set_H, set_lastTs, set_animTime, set_rafId, set_currentCharKey, set_currentChar, set_currentTheme, set_cloudsOn, set_lightningOn, set_timeOfDayOverride, set_darkLevel, set_imgs, set_thanatosPhase, set_thanatosTimer, set_segments, set_points, set_worms, set_isDual} from './globals.js';
+import { dogDialogue } from './DogDialogue.js';
+import { playBossReel } from './BossReelIntro.js';
 import { initInput } from './Input.js';
 
 export function init() {
@@ -59,6 +61,7 @@ export function resize() {
   if (!canvas) return;
   set_W(canvas.width = innerWidth);
   set_H(canvas.height = innerHeight);
+  dogDialogue.resize();
 }
 
 // 每个体节的体长半值：竖直(朝上)贴图取高度的一半，水平(朝右)贴图取宽度的一半
@@ -121,15 +124,26 @@ export function startGame(key) {
   DoGSky.targetIntensity = (key === 'devourer_of_gods') ? 1 : 0;
   set_imgs({});
   let loaded = 0;
+  let imgsReady = false;      // 图片全部加载完成
+  let reelDone = key !== 'devourer_of_gods';  // 非 DoG 无需入场动画
+  const maybeEnter = () => { if (imgsReady && reelDone) enterGame(); };
+  // ★ 神吞入场（2026-08-19）：点击 DoG 先播放 boss-reel 动画（主包内嵌 public/reel/boss-reel.html），
+  //   动画完（或点 Skip）→ ReelIntro 内部做白屏渐隐 + 剧烈震屏 → 图片就绪后 enterGame()
+  if (key === 'devourer_of_gods') {
+    // ★ 立即隐藏选人界面（动画层覆盖；否则动画层隐藏后 enterGame 的 400ms 淡出会让选人 UI 透过白屏闪现）
+    const selEl = document.getElementById('selection');
+    if (selEl) { selEl.style.opacity = '1'; selEl.style.display = 'none'; }
+    playBossReel(() => { reelDone = true; maybeEnter(); });
+  }
   const sources = IMAGES[key];
   const entries = Object.entries(sources);
   entries.forEach(([type, src]) => {
     // 数组值（如 Astrum Deus 的 glow 帧序列）：逐张加载为 Image 数组，全部就绪后再计入完成
     if (Array.isArray(src)) {
       const arr = new Array(src.length);
-      if (src.length === 0) { imgs[type] = arr; loaded++; if (loaded === entries.length) enterGame(); return; }
+      if (src.length === 0) { imgs[type] = arr; loaded++; if (loaded === entries.length) { imgsReady = true; maybeEnter(); } return; }
       let done = 0;
-      const finish = () => { imgs[type] = arr; loaded++; if (loaded === entries.length) enterGame(); };
+      const finish = () => { imgs[type] = arr; loaded++; if (loaded === entries.length) { imgsReady = true; maybeEnter(); } };
       src.forEach((s, idx) => {
         const im = new Image();
         im.onload = () => { arr[idx] = im; if (++done === src.length) finish(); };
@@ -145,12 +159,12 @@ export function startGame(key) {
     img.onload = () => {
       imgs[type] = img;
       loaded++;
-      if (loaded === entries.length) enterGame();
+      if (loaded === entries.length) { imgsReady = true; maybeEnter(); }
     };
     // 防御：相对路径失败则回退 base64；仍失败才计入完成，避免整局卡死、点击无反应
     img.onerror = () => {
       if (fb && !img.dataset.fell) { img.dataset.fell = '1'; img.src = fb; }
-      else { console.warn('[startGame] 图片加载失败，已跳过：', type); loaded++; if (loaded === entries.length) enterGame(); }
+      else { console.warn('[startGame] 图片加载失败，已跳过：', type); loaded++; if (loaded === entries.length) { imgsReady = true; maybeEnter(); } }
     };
     img.src = url;
   });
@@ -160,17 +174,45 @@ export function startGame(key) {
 export function enterGame() {
   console.log('[scourge_selector] BUILD v14 — 亮纹移回暗化层之后绘制（显眼亮色、不受黑夜压暗），遮挡改按真实从前到后深度：A 最前、B 在后、头在尾前');
   const sel = document.getElementById('selection');
-  sel.style.opacity = 0;
-  setTimeout(() => {
-    sel.style.display = 'none';
+  // ★ 2026-08-19 神吞入场：DoG 动画流程下选人界面已被 startGame 立即隐藏（display:none）→
+  //   game 立即显示（白屏淡出时底下直接是游戏画面，不会出现"白→黑→突然露出背景"的 400ms 黑屏间隔）
+  if (sel && sel.style.display === 'none') {
     document.getElementById('game').style.display = 'block';
-  }, 400);
+  } else {
+    sel.style.opacity = 0;
+    setTimeout(() => {
+      sel.style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+    }, 400);
+  }
   mouse.x = W / 2;
   mouse.y = H / 2;
   buildSegments();
   initParticles();
   // ★ DoG 过场特效预热（空闲时分帧渲染漩涡帧 + 预建 tint 缓存）→ 消除第一次按 P 的卡顿
   if (currentCharKey === 'devourer_of_gods') prewarmDoGEffects();
+  // ★ 神吞语言系统（EdgyBossText）：进 DoG 时初始化覆盖层；开场白改为冲刺进场完成后输出（Scourge.update entrance 分支）
+  if (currentCharKey === 'devourer_of_gods') {
+    dogDialogue.initOverlay();
+    dogDialogue.resize();
+    dogDialogue.clear();
+    // ★ 预热 DoGSky WebGL 引擎（shader 编译 + 纹理上传）：_getSky 懒加载——首次 draw 才创建，
+    //   正好卡在白屏消失瞬间（用户反馈"白屏消失时卡一下/背景没加载出来"）。enterGame 在白屏全白期调用，
+    //   编译开销被白屏盖住，白屏淡出时引擎已就绪。
+    if (DoGSky.texReady) DoGSky._getSky();
+    // ★ 2026-08-19 进场冲刺：整条虫放到屏幕左侧外（头朝右），高速冲入中央；到位时 say('spawn')
+    const ex = -140, ey = H / 2;
+    let cum = 0;
+    points.forEach((p, i) => { cum += (segments[i] ? segments[i].dist : 0); p.x = ex; p.y = ey + cum; });
+    segments.forEach(s => { s.angle = 0; });
+    DoGAnim.entranceActive = true;
+    DoGAnim.entranceFired = false;      // 重置满速启动标志（二次进入）
+    DoGAnim.entranceDelay = 0.7;        // ≈ 白屏淡出时长(0.8s)：白屏透明时冲刺恰好开始（冲刺全程清晰可见，
+                                        //   不会"透明后只看到冲刺尾巴"——旧值 0.1s 让冲刺在白屏高透明度下跑完）
+    DoGAnim.entranceTX = W / 2;
+    DoGAnim.entranceTY = H / 2;
+    DoGAnim.entranceSpeed = 2600;       // px/s 冲刺初速（P2 式高速）
+  }
   if (rafId) cancelAnimationFrame(rafId);
   set_lastTs(0);     // 重置时间戳，确保下一帧 dt 从 0 开始
   set_animTime(0);
@@ -189,6 +231,7 @@ export function returnToSelection() {
   set_points([]);
   set_worms([]);
   set_isDual(false);
+  dogDialogue.clear();   // 退出时清掉残留台词/队列
   const sel = document.getElementById('selection');
   sel.style.display = 'flex';
   sel.style.opacity = 1;
@@ -202,6 +245,7 @@ export function reloadCurrentCharacter() {
   set_currentChar(CHARACTERS[currentCharKey]);
   buildSegments();
   initParticles();
+  dogDialogue.clear();
 }
 onCharactersReload(reloadCurrentCharacter);
 
@@ -219,6 +263,8 @@ export function onKeyUp(e) {
   DoGAnim.shouldSpawnChompVFX = true;
   DoGAnim.dashJawFadeProgress = 1;
   DoGAnim.dashJawFadeTimer = 0.5;   // 咬合后放大高亮层保持 ~0.5s 后淡出（dt 已为真实秒，原为 60 帧误当 60 秒）
+  dogDialogue.onCastStart();        // 咬合算一次施放：允许随机池发 1 句
+  dogDialogue.sayRandom();          // 咬合完成触发随机狠话（头部气泡）
 }
 
 
@@ -259,6 +305,7 @@ export function onKey(e) {
     if (isBound('dog_toggleform', e) && !currentChar.armorOff) {
       // P 键：触发 P1→P2 过场（钻门 → 裂缝 → 冲刺钻出）
       // 仅 P1 可触发；P2 / armorOff 无操作
+      // finalPhase 台词在过场完成时由 updateDogPhaseTransition case 4 触发（变身完毕后再说）
       startPhaseTransition();
     }
     if (isBound('dog_bite', e) && currentCharKey === 'devourer_of_gods') {
@@ -280,6 +327,8 @@ export function onKey(e) {
       // 切换由 startArmorFadeTransition() 驱动（0.6s 淡出 + 0.1s 原位换贴图 + 0.6s 淡入），
       // 不再立即 buildSegments 瞬换贴图（旧版=“重新刷新生成一条虫”）。
       startArmorFadeTransition();   // 内部已判断 phase>=2 / 渐变中 / 过场中
+      dogDialogue.onCastStart();    // 切壳算一次施放：允许随机池发 1 句
+      dogDialogue.sayRandom();      // 切壳触发随机狠话（头部气泡）
     }
     if (isBound('dog_death', e)) {
       // 7 = 死亡演示：仅 P2（二阶段）可触发（用户要求：死亡动画只能 P2 才能触发）
@@ -291,21 +340,26 @@ export function onKey(e) {
     }
     if (isBound('dog_laser', e) && DOG_LASER_WALL_ENABLED && currentChar.armorOff) {
       // 8 = 释放激光墙技能：仅 armorOff（隐铠甲纯能量）形态可释放。
-      // 触发可见激光墙特效（原版 DoGLaserWalls.cs 网格 + BigBeam 大光束，约 5 秒）。
+      // 触发多轮激光墙（★ 2026-08-19 原版 DoGLaserWalls.cs 多轮状态机：青色预警→紫黑攻击→冷却循环）
       DoGAnim.laserActive = true;
-      DoGAnim.laserTimer = 480;      // 总时长（帧，8s）
-      DoGAnim.laserTime = 0;         // 原版 time（0→300）
-      DoGAnim.laserFX = 0;           // 淡入从 0 开始
-      DoGAnim.laserDoneAttack = false;
-      DoGAnim.laserStoredTime = 0;
-      DoGAnim.laserColor = [0, 221, 250];   // 起始 Cyan（原版 drawColor）
+      DoGAnim.laserTimer = 450;      // 总时长（帧，7.5s）= 5×90 整轮（预警30+攻击30+冷却30），避免末尾多出 30 帧卡在"预警无攻击"
+      DoGAnim.laserTime = 0;
+      DoGAnim.laserFX = 0;
       DoGAnim.laserSine = 0;
+      DoGAnim.laserPhase = 0;        // 从预警开始
+      DoGAnim.laserPhaseT = 0;
+      DoGAnim.laserRound = 0;
+      DoGAnim.laserPosX = 0; DoGAnim.laserPosY = 0;
+      DoGAnim.laserType = 0;
+      DoGAnim.laserLocked = false;   // 首轮参数在 update 内锁定
+      DoGAnim.laserColor = [0, 221, 250];
       DoGAnim.laserBigBeamActive = false;
       DoGAnim.laserBigBeamTime = 0;
       DoGAnim.laserBigBeamFX = 0;
       DoGAnim.laserBigBeamRot = (Math.random() - 0.5) * 0.8;   // 原版 laserRot ±0.4
-      DoGAnim.laserBigBeamColor = [255, 0, 255];               // 起始 Magenta（BigBeam 反向）
+      DoGAnim.laserBigBeamColor = [255, 0, 255];
       screenShake.set(6);
+      dogDialogue.onCastStart();   // 本次施放开始：允许随机池再发 1 句
     }
     if (isBound('dog_reset', e)) {
       DoGAnim.reset();

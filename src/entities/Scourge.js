@@ -1,7 +1,9 @@
 // ===== entities/Scourge.js (migrated from scourge_selector.html) =====
 import { lightningIntensity } from '../core/Background.js';
 import { DoGAnim, drawDogJawInstance, updateHUD, PT_DIVE_SPEED, PT_SUCTION } from '../core/Renderer.js';
+import { dogDialogue } from '../core/DogDialogue.js';
 import { H, THANATOS_HOLD, THANATOS_TRANS, W, _glowOcc, _glowTmp, animTime, canvas, clamp01, ctx, currentChar, currentCharKey, imgs, isDual, lastHead, mouse, points, segments, thanatosPhase, thanatosTimer, worms, dogClip, set_isDual, set_worms, set_segments, set_points, set_lastHead, set_thanatosTimer, set_thanatosPhase, set__glowTmp, set__glowOcc} from '../core/globals.js';
+import { screenShake } from '../utils/ScreenShake.js';
 
 export function segBodyHalf(seg) {
   // 所有角色的头部均统一以根部（底缘中点）为旋转轴：连接点即根部，自身贡献 0 半高
@@ -153,6 +155,41 @@ export function update(dt) {
     head.y += DoGAnim.deathDirY * spd * dt;
     segments[0].angle = lerpAngle(segments[0].angle, Math.atan2(DoGAnim.deathDirY, DoGAnim.deathDirX), currentChar.turnSmooth);
     lastHead.x = head.x; lastHead.y = head.y;
+  } else if (DoGAnim.entranceActive) {
+    // ★ 进场冲刺（2026-08-19 v8，用户确认 P2 式）：白屏透明后满速启动 → 惯性冲过头 → 缓冲减速 → 恢复鼠标跟随。
+    //   与 P2 ptCharge 同手感：不"刹停"在目标点（旧版比例减速会卡一下）。
+    if (DoGAnim.entranceDelay > 0) {
+      DoGAnim.entranceDelay -= dt;
+      lastHead.x = head.x; lastHead.y = head.y;
+    } else {
+      const dx = DoGAnim.entranceTX - head.x;
+      const dy = DoGAnim.entranceTY - head.y;
+      const dist = Math.hypot(dx, dy);
+      // 首次启动：满速指向目标（P2 冲刺感）+ 震动（boss 进入屏幕可见时，用户要求"进入屏幕再震"）
+      if (!DoGAnim.entranceFired) {
+        DoGAnim.entranceFired = true;
+        const sp0 = DoGAnim.entranceSpeed || 2600;
+        DoGAnim.entranceVx = (dx / (dist || 1)) * sp0;
+        DoGAnim.entranceVy = (dy / (dist || 1)) * sp0;
+        screenShake.set(24);
+        setTimeout(() => { if (screenShake.active) screenShake.set(16); }, 400);  // 延续震感
+      }
+      // 向目标速度收敛（v 保持 85% 惯性 → 冲过头后缓冲回来，不平滑刹停）
+      const ts = Math.min(DoGAnim.entranceSpeed || 2600, dist * 4);
+      const tVx = (dx / (dist || 1)) * ts;
+      const tVy = (dy / (dist || 1)) * ts;
+      DoGAnim.entranceVx = DoGAnim.entranceVx * 0.85 + tVx * 0.15;
+      DoGAnim.entranceVy = DoGAnim.entranceVy * 0.85 + tVy * 0.15;
+      head.x += DoGAnim.entranceVx * dt;
+      head.y += DoGAnim.entranceVy * dt;
+      segments[0].angle = lerpAngle(segments[0].angle, Math.atan2(DoGAnim.entranceVy, DoGAnim.entranceVx), currentChar.turnSmooth);
+      // 冲过头缓冲后（低速度 + 已回近目标）→ 结束进场，恢复鼠标跟随（向鼠标移动，P2 式收尾）
+      if (dist < 60 && Math.hypot(DoGAnim.entranceVx, DoGAnim.entranceVy) < 160) {
+        DoGAnim.entranceActive = false;
+        dogDialogue.say('spawn');   // ★ 开场白：冲刺进场完成后输出
+      }
+      lastHead.x = head.x; lastHead.y = head.y;
+    }
   } else {
     // 常规鼠标跟随
     const dx = mouse.x - head.x;
