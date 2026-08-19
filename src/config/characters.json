@@ -1,0 +1,403 @@
+{
+  "IMAGES": {
+    "aquatic_scourge": {
+      "head": "sprites/sprite_001.png",
+      "body1": "sprites/sprite_002.png",
+      "body2": "sprites/sprite_003.png",
+      "tail": "sprites/sprite_004.png"
+    },
+    "desert_scourge": {
+      "head": "sprites/sprite_005.png",
+      "head_sheet": {
+        "url": "characters/desert_scourge/head_sheet.png"
+      },
+      "body_01": "sprites/sprite_006.png",
+      "body_02": "sprites/sprite_007.png",
+      "body_03": "sprites/sprite_008.png",
+      "body_04": "sprites/sprite_009.png",
+      "tail": "sprites/sprite_010.png"
+    },
+    "the_perforator": {
+      "large_head": "sprites/sprite_011.png",
+      "large_body1": "sprites/sprite_012.png",
+      "large_body2": "sprites/sprite_013.png",
+      "large_tail": "sprites/sprite_014.png",
+      "medium_head": "sprites/sprite_015.png",
+      "medium_body": "sprites/sprite_016.png",
+      "medium_tail": "sprites/sprite_017.png",
+      "small_head": "sprites/sprite_018.png",
+      "small_body": "sprites/sprite_019.png",
+      "small_tail": "sprites/sprite_020.png"
+    },
+    "xm05_thanatos": {
+      "head_sheet": {
+        "url": "characters/xm05_thanatos/head_sheet.png"
+      },
+      "head_glow": {
+        "url": "characters/xm05_thanatos/head_glow.png"
+      },
+      "body1_sheet": {
+        "url": "characters/xm05_thanatos/body1_sheet.png"
+      },
+      "body1_glow": {
+        "url": "characters/xm05_thanatos/body1_glow.png"
+      },
+      "body2_sheet": {
+        "url": "characters/xm05_thanatos/body2_sheet.png"
+      },
+      "body2_glow": {
+        "url": "characters/xm05_thanatos/body2_glow.png"
+      },
+      "tail_sheet": {
+        "url": "characters/xm05_thanatos/tail_sheet.png"
+      },
+      "tail_glow": {
+        "url": "characters/xm05_thanatos/tail_glow.png"
+      }
+    },
+    "astrum_deus": {
+      "head": "sprites/sprite_021.png",
+      "body_alt_spectral": "sprites/sprite_022.png",
+      "body": "sprites/sprite_023.png",
+      "tail": "sprites/sprite_024.png",
+      "head_glows": [
+        "sprites/sprite_025.png",
+        "sprites/sprite_026.png"
+      ],
+      "head_glows_old": [
+        "sprites/sprite_027.png",
+        "sprites/sprite_028.png",
+        "sprites/sprite_028.png"
+      ],
+      "body_alt_glows": [
+        "sprites/sprite_029.png"
+      ],
+      "body_alt_glows_old": [
+        "sprites/sprite_030.png"
+      ],
+      "body_glows": [
+        "sprites/sprite_031.png",
+        "sprites/sprite_032.png"
+      ],
+      "body_glows_old": [
+        "sprites/sprite_033.png",
+        "sprites/sprite_034.png",
+        "sprites/sprite_034.png"
+      ],
+      "tail_glows": [
+        "sprites/sprite_035.png"
+      ],
+      "tail_glows_old": [
+        "sprites/sprite_036.png"
+      ]
+    },
+    "devourer_of_gods": {
+      "head": {
+        "url": "characters/devourer_of_gods/head.png"
+      },
+      "body": {
+        "url": "characters/devourer_of_gods/body.png"
+      },
+      "tail": {
+        "url": "characters/devourer_of_gods/tail.png"
+      },
+      "head_final": {
+        "url": "characters/devourer_of_gods/head_final.png"
+      },
+      "body_final": {
+        "url": "characters/devourer_of_gods/body_final.png"
+      },
+      "tail_final": {
+        "url": "characters/devourer_of_gods/tail_final.png"
+      },
+      "jaw": {
+        "url": "characters/devourer_of_gods/jaw.png"
+      },
+      "jaw_glow": {
+        "url": "characters/devourer_of_gods/DevourerofGodsHead_Jaw_Glow.png"
+      },
+      "jaw_final": {
+        "url": "characters/devourer_of_gods/jaw_final.png"
+      },
+      "jaw_final_glow": {
+        "url": "characters/devourer_of_gods/DevourerofGodsHead_Jaw_P2_Glow.png"
+      },
+      "godslayer_dash_jaw": {
+        "url": "characters/devourer_of_gods/GodSlayerDashJaw.png"
+      },
+      "body_glow": {
+        "url": "characters/devourer_of_gods/Body_Glow.png"
+      },
+      "body_p2_cyan": {
+        "url": "characters/devourer_of_gods/Body_P2_Glow_Cyan.png"
+      },
+      "body_p2_purple": {
+        "url": "characters/devourer_of_gods/Body_P2_Glow_Purple.png"
+      },
+      "head_cyan": {
+        "url": "characters/devourer_of_gods/Head_Glow_Cyan.png"
+      },
+      "head_purple": {
+        "url": "characters/devourer_of_gods/Head_Glow_Purple.png"
+      },
+      "head_jawless_p2_cyan": {
+        "url": "characters/devourer_of_gods/Head_Jawless_P2_Glow_Cyan.png"
+      },
+      "head_p2_cyan": {
+        "url": "characters/devourer_of_gods/Head_Jawless_P2_Glow_Cyan.png"
+      },
+      "head_p2_purple": {
+        "url": "characters/devourer_of_gods/Head_P2_Glow_Cyan_NoJaw.png"
+      },
+      "tail_cyan": {
+        "url": "characters/devourer_of_gods/Tail_Glow_Cyan.png"
+      },
+      "tail_purple": {
+        "url": "characters/devourer_of_gods/Tail_Glow_Purple.png"
+      },
+      "tail_p2_purple": {
+        "url": "characters/devourer_of_gods/Tail_P2_Glow_Purple.png"
+      },
+      "tail_p2_cyan": {
+        "url": "characters/devourer_of_gods/Tail_P2_Glow_Cyan.png"
+      },
+      "tail_sglow": {
+        "url": "characters/devourer_of_gods/TailSGlow.png"
+      },
+      "tail_sglow2": {
+        "url": "characters/devourer_of_gods/TailSGlow2.png"
+      },
+      "perlin": {
+        "url": "characters/devourer_of_gods/Perlin.png"
+      },
+      "hollow_circle": {
+        "url": "characters/devourer_of_gods/HollowCircleHardEdge.png"
+      },
+      "light": {
+        "url": "characters/devourer_of_gods/Light.png"
+      },
+      "plasma_explosion": {
+        "url": "characters/devourer_of_gods/PlasmaExplosion.jpg"
+      },
+      "shine1": {
+        "url": "characters/devourer_of_gods/ShineExplosion1.jpg"
+      },
+      "shine2": {
+        "url": "characters/devourer_of_gods/ShineExplosion2.jpg"
+      },
+      "sparkle": {
+        "url": "characters/devourer_of_gods/Sparkle.png"
+      },
+      "sparkle2": {
+        "url": "characters/devourer_of_gods/Sparkle2.png"
+      },
+      "star_proj": {
+        "url": "characters/devourer_of_gods/StarProj.png"
+      },
+      "bloom_circle": {
+        "url": "characters/devourer_of_gods/BloomCircle.png"
+      },
+      "bloom_ring": {
+        "url": "characters/devourer_of_gods/BloomRing.png"
+      },
+      "cracked_glass": {
+        "url": "characters/devourer_of_gods/CrackedGlass_Glowing.png"
+      },
+      "voronoi_shapes": {
+        "url": "textures/dog/VoronoiShapes.png"
+      },
+      "preview": {
+        "url": "characters/devourer_of_gods/DevourerofGodsHead_P2.png"
+      },
+      "dust_torch": {
+        "url": "textures/dog/DustTorch.png"
+      },
+      "gore_dog": [
+        "textures/dog/DoGS.png",
+        "textures/dog/DoGS2.png",
+        "textures/dog/DoGS3.png",
+        "textures/dog/DoGS4.png",
+        "textures/dog/DoGS5.png",
+        "textures/dog/DoGS6.png"
+      ],
+      "laser_beam": {
+        "url": "textures/dog/BloomLineThick.png"
+      },
+      "laser_line": {
+        "url": "textures/dog/LineThick.png"
+      },
+      "bloom_ring_thin": {
+        "url": "textures/dog/BloomRingThinLarge.png"
+      }
+    }
+  },
+  "CHARACTERS": {
+    "aquatic_scourge": {
+      "name": "渊海灾虫",
+      "scale": 1.2,
+      "overlap": 20,
+      "bodyCount": 10,
+      "segBase": 10,
+      "segFloor": 6,
+      "bodyStyle": "alternating",
+      "maxSpeed": 9,
+      "accel": 0.08,
+      "turnSmooth": 0.18,
+      "particleCount": 40,
+      "background": 3,
+      "clouds": 1,
+      "lightning": 1,
+      "timeOfDay": "day"
+    },
+    "desert_scourge": {
+      "name": "荒漠灾虫",
+      "scale": 1.0,
+      "overlap": 36,
+      "tailOverlap": 8,
+      "bodyCount": 4,
+      "segBase": 4,
+      "segFloor": 4,
+      "maxSpeed": 8,
+      "accel": 0.08,
+      "turnSmooth": 0.18,
+      "particleCount": 35,
+      "background": 1,
+      "clouds": 0,
+      "lightning": 0,
+      "timeOfDay": "day",
+      "frameCount": 7,
+      "framePeriod": 0.14,
+      "waveOffset": 0.045,
+      "frames": {
+        "head": {
+          "sheet": "head_sheet",
+          "glow": null,
+          "w": 158,
+          "fh": 118,
+          "period": 118
+        }
+      }
+    },
+    "the_perforator": {
+      "name": "穿孔者",
+      "scale": 1.0,
+      "overlap": 18,
+      "maxSpeed": 7,
+      "accel": 0.09,
+      "turnSmooth": 0.2,
+      "particleCount": 25,
+      "background": 2,
+      "clouds": 0,
+      "lightning": 0,
+      "timeOfDay": "day",
+      "currentVariant": "large",
+      "variants": {
+        "large": {
+          "bodyCount": 12,
+          "segBase": 12,
+          "segFloor": 8,
+          "spritePrefix": "large",
+          "hasAltBody": true
+        },
+        "medium": {
+          "bodyCount": 6,
+          "segBase": 6,
+          "segFloor": 6,
+          "spritePrefix": "medium",
+          "hasAltBody": false
+        },
+        "small": {
+          "bodyCount": 4,
+          "segBase": 4,
+          "segFloor": 4,
+          "spritePrefix": "small",
+          "hasAltBody": false
+        }
+      }
+    },
+    "xm05_thanatos": {
+      "name": "XM-05 塔纳托斯",
+      "scale": 1.0,
+      "overlap": 35,
+      "maxSpeed": 7,
+      "accel": 0.09,
+      "turnSmooth": 0.18,
+      "particleCount": 30,
+      "background": 6,
+      "clouds": 0,
+      "lightning": 1,
+      "timeOfDay": "night",
+      "frameCount": 5,
+      "framePeriod": 0.16,
+      "waveOffset": 0.045,
+      "frames": {
+        "head": {
+          "sheet": "head_sheet",
+          "glow": "head_glow",
+          "w": 104,
+          "fh": 172,
+          "anchor": "base"
+        },
+        "body1": {
+          "sheet": "body1_sheet",
+          "glow": "body1_glow",
+          "w": 148,
+          "fh": 96
+        },
+        "body2": {
+          "sheet": "body2_sheet",
+          "glow": "body2_glow",
+          "w": 136,
+          "fh": 98
+        },
+        "tail": {
+          "sheet": "tail_sheet",
+          "glow": "tail_glow",
+          "w": 84,
+          "fh": 116
+        }
+      },
+      "bodyCount": 10,
+      "segBase": 10,
+      "segFloor": 8,
+      "bodyStyle": "alternating"
+    },
+    "astrum_deus": {
+      "name": "Astrum Deus",
+      "scale": 1.15,
+      "overlap": 22,
+      "bodyCount": 11,
+      "segBase": 11,
+      "segFloor": 6,
+      "maxSpeed": 7,
+      "accel": 0.065,
+      "turnSmooth": 0.16,
+      "particleCount": 30,
+      "background": 5,
+      "clouds": 0,
+      "lightning": 0,
+      "timeOfDay": "night",
+      "glowSpeed": 3.0,
+      "selfLuminous": true
+    },
+    "devourer_of_gods": {
+      "name": "Devourer of Gods",
+      "scale": 1.0,
+      "overlap": 18,
+      "bodyCount": 10,
+      "segBase": 10,
+      "segFloor": 8,
+      "maxSpeed": 6,
+      "accel": 0.055,
+      "turnSmooth": 0.14,
+      "particleCount": 25,
+      "background": 4,
+      "clouds": 0,
+      "lightning": 0,
+      "timeOfDay": "night",
+      "phase": 1,
+      "armorOff": false,
+      "selfLuminous": true
+    }
+  }
+}

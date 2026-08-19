@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>灾虫跟随鼠标</title>
+</head>
+<body>
+
+  <div id="title">
+        <div id="night-overlay"></div>
+    <div id="celestial">
+      <div id="sun-el"></div>
+      <div id="moon-el"></div>
+    </div>
+    <div class="title-logo">The Devourers</div>
+    <div class="title-btns">
+      <button class="title-btn" id="btn-play"><span class="sway">Play</span></button>
+      <button class="title-btn" id="btn-controls"><span class="sway">Controls</span></button>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div class="controls-panel">
+      <button class="controls-close" id="btn-controls-close" aria-label="Close">×</button>
+      <h2>Controls</h2>
+      <div id="controls-panel">
+        <!-- Rendered by renderKeyBindings() -->
+      </div>
+    </div>
+  </div>
+  <div id="selection">
+    <h1>Choose Devourer</h1>
+    <div class="cards">
+      <button class="char-card" data-char="aquatic_scourge">
+        <img id="preview-aquatic" src="" alt="Aquatic Scourge">
+        <span>Aquatic Scourge</span>
+      </button>
+      <button class="char-card" data-char="desert_scourge">
+        <img id="preview-desert" src="" alt="Desert Scourge">
+        <span>Desert Scourge</span>
+      </button>
+      <button class="char-card" data-char="the_perforator">
+        <img id="preview-perforator" src="" alt="The Perforator">
+        <span>The Perforator</span>
+      </button>
+      <button class="char-card" data-char="xm05_thanatos">
+        <img id="preview-thanatos" src="" alt="XM-05 Thanatos">
+        <span>XM-05 Thanatos</span>
+      </button>
+      <button class="char-card" data-char="astrum_deus">
+        <img id="preview-astrum" src="" alt="Astrum Deus">
+        <span>Astrum Deus</span>
+      </button>
+      <button class="char-card" data-char="devourer_of_gods">
+        <img id="preview-devourer" src="" alt="Devourer of Gods">
+        <span>Devourer of Gods</span>
+      </button>
+
+    </div>
+  </div>
+
+  <div id="game">
+    <canvas id="c"></canvas>
+    <div id="hud"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
